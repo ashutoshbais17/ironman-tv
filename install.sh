@@ -7,8 +7,8 @@
 #   ./install.sh <tv-ip> --fx snow                         one background effect instead of all of them in turn
 #   ./install.sh <tv-ip> --label "WELCOME MR. STARK" --voice hello.mp3   your own greeting, written and spoken
 #
-# Options: --fx fire|snow|fireice|storm|cycle|off (default cycle); --label "<text>"|off (what his right hand
-# projects, default WELCOME HOME); --voice <file.mp3> (played at start-up) or --say "<text>"|off with
+# Options: --fx fire|snow|fireice|storm|cycle|off (default cycle); --label "<text>" (his right hand projects it
+# as a hologram, and his left hand alone follows you); --voice <file.mp3> (played at start-up) or --say "<text>"|off with
 # --say-lang <tag> (spoken by the TV's own voice, default a Hindi welcome); --no-darken (keep your picture's
 # colours); --apk <file> (a launcher APK you built yourself).
 # Before running: on the TV, Settings > Device Preferences > About > press OK on "Build" 7 times, then
@@ -132,9 +132,9 @@ tools/theme.sh "$WORK/theme"
 
 say "Done. Press Home on the remote."
 cat <<EOF
-Move between the apps: his left hand fires at whatever you pick. The arc reactor intro plays on the next power-on.
+Move between the apps: the beam follows from his nearer hand. The arc reactor intro plays on the next power-on.
 Background: ${FX:-cycle} (fire, snow, fire & ice and storm in turn with "cycle"; change it with --fx).
-His right hand projects: ${LABEL:-WELCOME HOME} (change it with --label). The greeting plays with the intro.
+The greeting plays with the arc reactor intro. Hear it now: ./replay-intro.sh $TV
 
 Watch the intro now:
   TV_HOST=$TV tools/venv/bin/python tools/tv.py 'am start -n com.gathin.tvhome/.MainActivity --ez com.gathin.tvhome.REPLAY_BOOT_INTRO true'

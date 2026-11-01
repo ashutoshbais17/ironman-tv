@@ -23,7 +23,7 @@ Work on the real TV, step by step, and check each step with a screenshot from th
 - Look in `devices/` for my model. If it isn't there, check https://github.com/Gathin23/cleanyourtv/tree/main/examples
   for a tested `config.json` for my model, and save it as `devices/<model>.json`.
 - Ask me which background I want behind Iron Man: fire, snow, fireice, storm, all of them in turn (cycle, the
-  default) or none (off). Ask what his right hand should project (`--label`, default WELCOME HOME) and whether I
+  default) or none (off). Ask whether I want his right hand to project some words (`--label`, off by default) and whether I
   have a voice clip for start-up (`--voice file.mp3`); otherwise the TV speaks a Hindi welcome (`--say` changes it).
 - Run `./install.sh <tv ip> --fx <my pick>` (Windows: `install.ps1 -Fx`), adding `--device <model>` when there's a devices file. It
   reuses cleanyourtv's install script, which only disables the stock launcher once the new one is confirmed as

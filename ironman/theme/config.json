@@ -1,6 +1,6 @@
 {
   "repulsor_beam": true,
-  "repulsor_greeting": "WELCOME HOME",
+  "repulsor_greeting": "",
   "greeting_speech": "\u0930\u093e\u092e \u0930\u093e\u092e \u091c\u0940! \u0906\u091c \u0915\u094d\u092f\u093e \u0926\u0947\u0916\u0928\u093e \u092a\u0938\u0902\u0926 \u0915\u0930\u0947\u0902\u0917\u0947?",
   "greeting_speech_lang": "hi-IN",
   "ambient_fx": "cycle",

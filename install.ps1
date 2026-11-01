@@ -6,8 +6,8 @@
 #   ... -TvHost 192.168.1.50 -Fx snow                                one background effect instead of all of them in turn
 #   ... -TvHost 192.168.1.50 -Label "WELCOME MR. STARK" -Voice hello.mp3   your own greeting, written and spoken
 #
-# Options: -Fx fire|snow|fireice|storm|cycle|off (default cycle); -Label "<text>"|off (what his right hand
-# projects, default WELCOME HOME); -Voice <file.mp3> (played at start-up) or -Say "<text>"|off with
+# Options: -Fx fire|snow|fireice|storm|cycle|off (default cycle); -Label "<text>" (his right hand projects it
+# as a hologram, and his left hand alone follows you); -Voice <file.mp3> (played at start-up) or -Say "<text>"|off with
 # -SayLang <tag> (spoken by the TV's own voice, default a Hindi welcome); -NoDarken (keep your picture's
 # colours); -Apk <file> (a launcher APK you built yourself).
 # Before running: on the TV, Settings > Device Preferences > About > press OK on "Build" 7 times, then
@@ -154,9 +154,9 @@ Say 'Applying the Iron Man theme'
 
 Say 'Done. Press Home on the remote.'
 Write-Host @"
-Move between the apps: his left hand fires at whatever you pick. The arc reactor intro plays on the next power-on.
+Move between the apps: the beam follows from his nearer hand. The arc reactor intro plays on the next power-on.
 Background: $(if ($Fx) { $Fx } else { 'cycle' }) (fire, snow, fire & ice and storm in turn with "cycle"; change it with -Fx).
-His right hand projects: $(if ($Label) { $Label } else { 'WELCOME HOME' }) (change it with -Label). The greeting plays with the intro.
+The greeting plays with the arc reactor intro. Hear it now (Mac/Linux): ./replay-intro.sh $TvHost
 
 Watch the intro now:
   `$env:TV_HOST='$TvHost'; tools\venv\Scripts\python.exe tools\tv.py 'am start -n com.gathin.tvhome/.MainActivity --ez com.gathin.tvhome.REPLAY_BOOT_INTRO true'

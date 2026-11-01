@@ -223,6 +223,11 @@ Orbitron, Rajdhani and Exo 2.
 - Right after a boot the theme folder can still be unreadable (shared storage not mounted yet), so the launcher
   keeps a copy of the clip in its own storage and plays that.
 
+**Then, on the TV, less was more.** On the real screen the hologram text felt overdone, so it came out: it's off by
+default, and both hands are back to firing at the app nearer to them. `--label` keeps it as an option. The first
+voice didn't feel right either; a second ElevenLabs voice ("Tarini", calm and measured) replaced it. To hear a
+change without restarting the TV, `./replay-intro.sh <tv ip>` plays the intro and greeting over Home.
+
 ## What changed in the launcher
 
 | File | What it does |

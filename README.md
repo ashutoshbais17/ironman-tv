@@ -1,7 +1,7 @@
 # Iron Man TV Home
 
 Turn your Android TV's home screen into Iron Man. A repulsor beam fires from his hand to whichever app you
-select, his other hand projects a hologram greeting, fire, snow or a storm rages behind him, and an arc reactor
+select, switching hands as you move, fire, snow or a storm rages behind him, and an arc reactor
 powers up with a spoken welcome every time the TV turns on.
 
 <!-- Demo: add docs/demo.gif (a clip from your reel) and uncomment the next line.
@@ -11,9 +11,8 @@ powers up with a spoken welcome every time the TV turns on.
 **What you get**
 
 - A full-screen Iron Man wallpaper, darkened so the clock stays readable
-- A repulsor beam from his left palm to the app you're on: a cone of light with streaks flowing down it and
+- A repulsor beam from his nearer palm to the app you're on: a cone of light with streaks flowing down it and
   rings riding along, a shot each time you move, and a ripple where it lands
-- His right palm projects a hologram greeting (WELCOME HOME, or your own words)
 - A spoken welcome as the arc reactor powers up: your own voice file, or the TV's voice saying
   "राम राम जी! आज क्या देखना पसंद करेंगे?"
 - Fire, snow, fire & ice, or a storm with lightning, behind him (he's cut out of the wallpaper, so it all
@@ -84,13 +83,15 @@ Running the installer again with a different `--fx` switches it; nothing else ch
 
 ## Your own greeting
 
-Put your name in his hologram, and your own voice clip at start-up:
+Your own voice clip at start-up, and optionally your own words projected from his right hand:
 
 ```bash
 ./install.sh 192.168.1.50 --label "WELCOME MR. STARK" --voice welcome.mp3
 ```
 
-- `--label "<text>"` is what his right hand projects (`--label off` gives both hands back to the beam).
+- `--label "<text>"` (optional): his right hand projects it as a hologram, and his left hand alone follows the
+  selection. Leave it out to keep both hands firing.
+- Replay the intro with its greeting any time, without restarting the TV: `./replay-intro.sh 192.168.1.50`.
 - `--voice <file.mp3>` plays at start-up. A natural-sounding clip is easy to make with an AI voice site such as
   ElevenLabs, or record your own on your phone.
 - Without `--voice`, the TV's own voice speaks a line: `--say "Welcome home, sir" --say-lang en-GB` changes it,
