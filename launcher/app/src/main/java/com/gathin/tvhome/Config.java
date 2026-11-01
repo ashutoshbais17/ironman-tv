@@ -427,7 +427,8 @@ final class Config {
      */
     static final class Skin {
         boolean clockSeconds, sharingan, repulsorBeam;
-        String repulsorOrigins;
+        String repulsorOrigins, ambientFx, foregroundOrigin;
+        int ambientFxMinutes;
 
         static Skin load(Context ctx) {
             Resources res = ctx.getResources();
@@ -436,6 +437,9 @@ final class Config {
             s.sharingan = res.getBoolean(R.bool.sharingan);
             s.repulsorBeam = res.getBoolean(R.bool.repulsor_beam);
             s.repulsorOrigins = res.getString(R.string.repulsor_origins);
+            s.ambientFx = res.getString(R.string.ambient_fx);
+            s.ambientFxMinutes = res.getInteger(R.integer.ambient_fx_minutes);
+            s.foregroundOrigin = res.getString(R.string.foreground_origin);
             File d = dir(ctx);
             JSONObject json = read(d != null ? new File(d, FILE_NAME) : null);
             // load() keeps a copy for when external storage is not mounted yet (right after boot).
@@ -445,6 +449,9 @@ final class Config {
                 s.sharingan = bool(json, "sharingan", s.sharingan);
                 s.repulsorBeam = bool(json, "repulsor_beam", s.repulsorBeam);
                 s.repulsorOrigins = string(json, "repulsor_origins", s.repulsorOrigins);
+                s.ambientFx = string(json, "ambient_fx", s.ambientFx);
+                s.ambientFxMinutes = integer(json, "ambient_fx_minutes", s.ambientFxMinutes, 1, 120);
+                s.foregroundOrigin = string(json, "foreground_origin", s.foregroundOrigin);
             }
             return s;
         }

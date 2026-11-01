@@ -1,7 +1,8 @@
 # Iron Man TV Home
 
 Turn your Android TV's home screen into Iron Man. A repulsor beam fires from his hand to whichever app you
-select, switching hands as you move, and an arc reactor powers up every time the TV turns on.
+select, switching hands as you move, fire, snow or a storm rages behind him, and an arc reactor powers up every
+time the TV turns on.
 
 <!-- Demo: add docs/demo.gif (a clip from your reel) and uncomment the next line.
 ![Iron Man TV Home](docs/demo.gif)
@@ -10,7 +11,10 @@ select, switching hands as you move, and an arc reactor powers up every time the
 **What you get**
 
 - A full-screen Iron Man wallpaper, darkened so the clock stays readable
-- A glowing beam from his nearer palm to the app you're on, with both palms pulsing
+- A repulsor beam from his nearer palm to the app you're on: a cone of light with streaks flowing down it and
+  rings riding along, a shot each time you move, and a ripple where it lands
+- Fire, snow, fire & ice, or a storm with lightning, behind him (he's cut out of the wallpaper, so it all
+  passes behind him). By default they take turns every few minutes and each time you go Home
 - An arc reactor power-up animation each time the TV starts
 - A clean, frosted-glass dock with your apps' own colourful logos
 - A big clock with rolling seconds, and the date
@@ -64,6 +68,17 @@ anything on your Wi-Fi can control the TV.
 > **Mac, first run:** if it says "No route to host", macOS is blocking the network for Terminal. Go to System
 > Settings → Privacy & Security → Local Network, switch Terminal on, quit and reopen Terminal, and run again.
 
+## Pick the background
+
+All four effects take turns by default. To keep just one, add `--fx` (Windows: `-Fx`) with `fire`, `snow`,
+`fireice` or `storm`, or `off` for none:
+
+```bash
+./install.sh 192.168.1.50 --fx snow
+```
+
+Running the installer again with a different `--fx` switches it; nothing else changes.
+
 ## Prefer to let an AI do it?
 
 Using [Claude Code](https://claude.com/claude-code)? Open it in the unzipped folder and paste the prompt from
@@ -82,7 +97,9 @@ Any wallpaper works, as long as the beam knows where the hands are:
 ./install.sh 192.168.1.50 --wallpaper my-picture.jpg --palms "0.3813,0.1898;0.6083,0.2389"
 ```
 
-Add `--no-darken` (Windows: `-NoDarken`) if your picture is already dark.
+Add `--no-darken` (Windows: `-NoDarken`) if your picture is already dark. The installer also cuts the figure
+out, so the effects pass behind it; that works when the figure stands out from a plain background. On a busy
+picture it says so, and the effects simply play over the whole picture.
 
 ## TV-specific settings
 

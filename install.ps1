@@ -3,8 +3,10 @@
 #   powershell -ExecutionPolicy Bypass -File .\install.ps1 -TvHost 192.168.1.50
 #   ... -TvHost 192.168.1.50 -Device thomson-sppl-4k-sw6h          plus the settings for a TV listed in devices\
 #   ... -TvHost 192.168.1.50 -Wallpaper me.jpg -Palms "0.42,0.31"   your own picture (palms from ironman\calibrate.html)
+#   ... -TvHost 192.168.1.50 -Fx snow                                one background effect instead of all of them in turn
 #
-# Options: -NoDarken (keep your picture's colours), -Apk <file> (a launcher APK you built yourself).
+# Options: -Fx fire|snow|fireice|storm|cycle|off (default cycle), -NoDarken (keep your picture's colours),
+# -Apk <file> (a launcher APK you built yourself).
 # Before running: on the TV, Settings > Device Preferences > About > press OK on "Build" 7 times, then
 # Developer options > turn on USB debugging (and Network debugging, if the TV shows it).
 param(
@@ -13,7 +15,8 @@ param(
     [string]$Wallpaper = '',
     [string]$Palms = '',
     [switch]$NoDarken,
-    [string]$Apk = ''
+    [string]$Apk = '',
+    [ValidateSet('', 'fire', 'snow', 'fireice', 'storm', 'cycle', 'off')][string]$Fx = ''
 )
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
@@ -90,21 +93,31 @@ if (-not $Wallpaper) {
     $size = (& $py -I -c 'import sys;from PIL import Image;print("%dx%d" % Image.open(sys.argv[1]).size)' $Wallpaper) -join ''
     if ($size -ne '8900x5004') { Write-Host "Note: the wallpaper came back as $size, not 8900x5004; if the beam misses his palms, calibrate with ironman\calibrate.html." }
 }
-$prep = @('-I', 'ironman\prep_wallpaper.py', $Wallpaper, (Join-Path $theme 'wallpapers\01-wallpaper.jpg'))
+# The figure is cut out too, so the background effects can pass behind him.
+$prep = @('-I', 'ironman\prep_wallpaper.py', $Wallpaper, (Join-Path $theme 'wallpapers\01-wallpaper.jpg'), '--cutout', (Join-Path $theme 'foreground.png'))
 if ($NoDarken) { $prep += '--no-darken' }
-& $py @prep
+$prepOut = @(& $py @prep)
 if ($LASTEXITCODE -ne 0) { Die 'Could not prepare the wallpaper.' }
+$prepOut | Where-Object { $_ -notmatch '^foreground_origin ' } | ForEach-Object { Write-Host $_ }
+$origin = ''
+$prepOut | Where-Object { $_ -match '^foreground_origin (.+)$' } | ForEach-Object { $origin = $Matches[1] }
 
-# The theme: the skin's settings, the TV's own (devices\), and where the palms are.
+# The theme: the skin's settings, the TV's own (devices\), where the palms are, and the background effect.
 $merge = @'
-import json, sys
+import json, os, sys
 out, palms, extra = sys.argv[1], sys.argv[2], sys.argv[3:]
 cfg = json.load(open("ironman/theme/config.json"))
 for path in extra:
     cfg.update(json.load(open(path)))
 cfg["repulsor_origins"] = palms
+if os.environ["ORIGIN"]:
+    cfg["foreground_origin"] = os.environ["ORIGIN"]
+if os.environ["FX"]:
+    cfg["ambient_fx"] = "" if os.environ["FX"] == "off" else os.environ["FX"]
 json.dump(cfg, open(out, "w"), indent=2)
 '@
+$env:ORIGIN = $origin
+$env:FX = $Fx
 $mergeFile = Join-Path $work 'merge.py'
 Set-Content -Path $mergeFile -Value $merge -Encoding ASCII
 $margs = @('-I', $mergeFile, (Join-Path $theme 'config.json'), $Palms)
@@ -125,6 +138,7 @@ Say 'Applying the Iron Man theme'
 Say 'Done. Press Home on the remote.'
 Write-Host @"
 Move between the apps: the beam follows from his nearer hand. The arc reactor intro plays on the next power-on.
+Background: $(if ($Fx) { $Fx } else { 'cycle' }) (fire, snow, fire & ice and storm in turn with "cycle"; change it with -Fx).
 
 Watch the intro now:
   `$env:TV_HOST='$TvHost'; tools\venv\Scripts\python.exe tools\tv.py 'am start -n com.gathin.tvhome/.MainActivity --ez com.gathin.tvhome.REPLAY_BOOT_INTRO true'

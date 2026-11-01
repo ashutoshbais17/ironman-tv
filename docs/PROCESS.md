@@ -145,15 +145,66 @@ two-layer blue glow, the core charges and flares, then a shockwave rolls to the 
   6. Install with cleanyourtv's script (keeping its rollback safety) and push the theme.
 - `uninstall.sh` / `uninstall.ps1` bring the stock launcher back and check it owns Home before removing this one.
 
+## 9. Version 1.1: a real beam, and fire and snow behind him
+
+Feedback on 1.0: the beam looked like a lightsaber, one even line. And could the background have fire, snow
+and so on?
+
+**Preview first.** A browser preview built from real frames of the TV: the wallpaper, the tiles and the clock as
+separate layers, with the old and new beam and every background switchable, and the selection moving like the
+remote. The first try at the new beam (three strands twisting round the axis) read as lightning, not light; the
+version that went in is a cone.
+
+**The beam** (`RepulsorBeamView`, rewritten):
+- A cone of light, about 22 dp wide at the palm and 150 dp at the app, in five layers from a wide faint blue
+  to a narrow near-white. Each layer fades along its length: brightest at the hand, dimmer mid-way, picking up
+  at the target.
+- Streaks of light flowing down it at different depths, three repulsor rings riding along with a glow, and
+  sparks inside.
+- Each move fires a shot: a bright bolt racing from the palm with a ring bursting off the hand, then a ripple
+  where it lands. The palms get a lens streak.
+
+**The backgrounds** (`AmbientFxView`, new): `fire` (embers rising on a breathing glow from below, with soft
+tongues of flame), `snow` (three depths), `fireice` (both) and `storm` (slanting rain, and lightning every few
+seconds that lights the sky behind him). `cycle` plays each in turn, cross-fading every 3 minutes
+(`ambient_fx_minutes`) and moving on each time you go Home.
+
+**Behind him, not over him.** `prep_wallpaper.py --cutout` cuts Iron Man out of the finished wallpaper: pixels
+saturated enough to be armour, small gaps closed, then everything the grey background can't reach from the
+picture's edges filled in (his grey and dark parts). The launcher draws the particles, then the cut-out on top
+(`foreground.png`, placed by `foreground_origin`), so the effects pass behind him; a few near flakes and
+embers still cross in front for depth. Like the wallpaper, the cut-out is made on your own computer, so no
+Marvel art is in this repo. `wallpaper_true_color` keeps the wallpaper in 32-bit colour, so the cut-out's edges
+match it exactly.
+
+**Making it cheap enough for a TV.** The first build kept the launcher's render thread at about 75% of a CPU
+core while Home was on screen:
+- Every frame, Android redraws all of Home, not just the parts that moved. So the steady motion (particles,
+  the beam's flow) now redraws at 30 frames a second, with both layers on the same frames
+  (`AmbientFxView.ambientFrame`). The beam's moves still run at 60.
+- On this TV's CPU, each separate draw call costs, so the sparks, streaks, embers, snowflakes and raindrops
+  are drawn in batches by brightness and depth (`drawPoints`, `drawLines`): about 30 calls instead of 300.
+- The cone's shapes are kept between frames and only rebuilt when the beam moves.
+- The result: about 53% of one core of four, only while Home is showing. What's left is mostly redrawing
+  Home itself, plus the rolling clock seconds, which still animate at full speed.
+
+**Two bugs on the way:**
+- The first "every other frame" rule counted frames by number. When a frame ran late, two in a row passed,
+  giving 41 frames a second instead of 30. It now uses the time since the last redraw.
+- Soft glow bitmaps around each snowflake came out as hard rings once batched as points. The snow lost its
+  halo; the embers got three glow steps, which reads as fire seen out of focus.
+
 ## What changed in the launcher
 
 | File | What it does |
 |---|---|
-| `RepulsorBeamView.java` | The beam, the palm flares, the hand switching |
+| `RepulsorBeamView.java` | The beam, the palm flares, the shot, the hand switching |
+| `AmbientFxView.java` | Fire, snow, fire & ice and storm, drawn behind the cut-out of the figure |
+| `ThemeFiles.java` | Lets a theme carry `foreground.png` |
 | `ArcReactorBootView.java` | The boot intro |
 | `RollingSecondsView.java` | The rolling seconds |
 | `SharinganView.java` | The eye (off by default; `"sharingan": true` in a theme brings it back) |
-| `Config.java` | `Config.Skin`: reads the skin's keys from `config.xml` and the theme |
+| `Config.java` | `Config.Skin`: reads the skin's keys (`repulsor_*`, `ambient_fx*`, `foreground_origin`) from `config.xml` and the theme |
 | `MainActivity.java` | Wires them in: focus tracking, fading with the dock title, boot-once logic, replay intent, start/stop with Home |
 | `activity_main.xml` | The new views |
 | `res/values/config.xml` | The new keys, all off by default |

@@ -436,6 +436,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private SharinganView sharingan;
     private boolean beamOn;
     private RepulsorBeamView beam;
+    private boolean fxOn;
+    private AmbientFxView fx;
+    private String foregroundOrigin;
     private java.util.Map<Integer, String> homeHoldAppKeys = java.util.Collections.emptyMap();
 
     @Override
@@ -573,6 +576,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 if (beam.getAlpha() != alpha) beam.setAlpha(alpha);
                 return true;
             });
+        }
+        fxOn = !skin.ambientFx.trim().isEmpty() && !reducedMotion;
+        if (fxOn) {
+            fx = findViewById(R.id.ambientFx);
+            fx.setMode(skin.ambientFx.trim(), skin.ambientFxMinutes);
+            foregroundOrigin = skin.foregroundOrigin;
+            fx.setVisibility(View.VISIBLE);
         }
         if (sharinganOn || beamOn) maybePlayBootIntro();
         if (getResources().getBoolean(R.bool.rtl_menu_bar)) {
@@ -1150,6 +1160,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         wallpaperPlayer.start();
         if (sharinganOn) sharingan.start();
         if (beamOn) beam.start();
+        if (fxOn) {
+            // The theme folder can be missing right after boot, before storage is mounted, so try on each return.
+            File themeDir = Config.dir(this);
+            if (themeDir != null) fx.setForeground(new File(themeDir, AmbientFxView.FOREGROUND), foregroundOrigin);
+            fx.start();
+        }
         if (clockSecondsOn) clockSeconds.start();
         handler.postDelayed(minuteTick, MINUTE_MS);
         if (festive && lamp != null) {
@@ -1327,6 +1343,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         wallpaperPlayer.stop();
         if (sharinganOn) sharingan.stop();
         if (beamOn) beam.stop();
+        if (fxOn) fx.stop();
         if (clockSecondsOn) clockSeconds.stop();
         stopAmbientAnimation();
         hero.animate().cancel();

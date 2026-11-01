@@ -30,6 +30,15 @@
         android:layout_height="match_parent"
         android:alpha="0" />
 
+    <!-- ambient_fx: embers, snow or a storm over the wallpaper, passing behind a cut-out of its figure
+         (a theme's foreground.png). Off by default. -->
+    <com.gathin.tvhome.AmbientFxView
+        android:id="@+id/ambientFx"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        android:importantForAccessibility="no" />
+
     <!-- Race-weekend panel (a theme's race_calendar, see RaceWeekend): in the free space under the clock,
          shown only from shortly before a weekend's first session until the race is over. Updated once a
          minute with the clock, never animated. -->

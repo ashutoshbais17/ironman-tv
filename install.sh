@@ -4,8 +4,10 @@
 #   ./install.sh <tv-ip>                                   the Iron Man wallpaper and beam
 #   ./install.sh <tv-ip> --device thomson-sppl-4k-sw6h     plus the settings for a TV listed in devices/
 #   ./install.sh <tv-ip> --wallpaper me.jpg --palms "0.42,0.31"   your own picture (palms from ironman/calibrate.html)
+#   ./install.sh <tv-ip> --fx snow                         one background effect instead of all of them in turn
 #
-# Options: --no-darken (keep your picture's colours), --apk <file> (a launcher APK you built yourself).
+# Options: --fx fire|snow|fireice|storm|cycle|off (default cycle), --no-darken (keep your picture's colours),
+# --apk <file> (a launcher APK you built yourself).
 # Before running: on the TV, Settings > Device Preferences > About > press OK on "Build" 7 times, then
 # Developer options > turn on USB debugging (and Network debugging, if the TV shows it).
 set -euo pipefail
@@ -15,9 +17,9 @@ REPO="ashutoshbais17/ironman-tv"
 
 say() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 die() { printf '\n\033[1;31m%s\033[0m\n' "$*" >&2; exit 1; }
-usage() { sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
+usage() { sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
 
-TV="" DEVICE="" WALL="" PALMS="" DARKEN=1 APK=""
+TV="" DEVICE="" WALL="" PALMS="" DARKEN=1 APK="" FX=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --device) DEVICE="${2:?--device needs a name}"; shift 2 ;;
@@ -25,12 +27,14 @@ while [ $# -gt 0 ]; do
     --palms) PALMS="${2:?--palms needs x,y pairs}"; shift 2 ;;
     --no-darken) DARKEN=0; shift ;;
     --apk) APK="${2:?--apk needs a file}"; shift 2 ;;
+    --fx) FX="${2:?--fx needs fire, snow, fireice, storm, cycle or off}"; shift 2 ;;
     -h|--help) usage ;;
     -*) die "unknown option $1 (see ./install.sh --help)" ;;
     *) [ -z "$TV" ] || die "one TV address only"; TV="$1"; shift ;;
   esac
 done
 [ -n "$TV" ] || usage
+case "${FX:-cycle}" in fire|snow|fireice|storm|cycle|off) ;; *) die "--fx is one of fire, snow, fireice, storm, cycle, off" ;; esac
 if [ -n "$DEVICE" ] && [ ! -f "devices/$DEVICE.json" ]; then
   die "no devices/$DEVICE.json. Known: $(ls devices | sed 's/\.json$//' | tr '\n' ' ')"
 fi
@@ -83,16 +87,23 @@ if [ -z "$WALL" ]; then
   SIZE="$("$PY" -I -c 'import sys;from PIL import Image;print("%dx%d" % Image.open(sys.argv[1]).size)' "$WALL")"
   [ "$SIZE" = "8900x5004" ] || echo "Note: the wallpaper came back as $SIZE, not 8900x5004; if the beam misses his palms, calibrate with ironman/calibrate.html."
 fi
-"$PY" -I ironman/prep_wallpaper.py "$WALL" "$WORK/theme/wallpapers/01-wallpaper.jpg" $([ "$DARKEN" = 1 ] || echo --no-darken)
+# The figure is cut out too, so the background effects can pass behind him.
+"$PY" -I ironman/prep_wallpaper.py "$WALL" "$WORK/theme/wallpapers/01-wallpaper.jpg" \
+  --cutout "$WORK/theme/foreground.png" $([ "$DARKEN" = 1 ] || echo --no-darken) | tee "$WORK/prep.log"
+ORIGIN="$(sed -n 's/^foreground_origin //p' "$WORK/prep.log")"
 
-# The theme: the skin's settings, the TV's own (devices/), and where the palms are.
-"$PY" -I - "$WORK/theme/config.json" "$PALMS" ${DEVICE:+"devices/$DEVICE.json"} <<'EOF'
-import json, sys
+# The theme: the skin's settings, the TV's own (devices/), where the palms are, and the background effect.
+FX="$FX" ORIGIN="$ORIGIN" "$PY" -I - "$WORK/theme/config.json" "$PALMS" ${DEVICE:+"devices/$DEVICE.json"} <<'EOF'
+import json, os, sys
 out, palms, extra = sys.argv[1], sys.argv[2], sys.argv[3:]
 cfg = json.load(open("ironman/theme/config.json"))
 for path in extra:
     cfg.update(json.load(open(path)))
 cfg["repulsor_origins"] = palms
+if os.environ["ORIGIN"]:
+    cfg["foreground_origin"] = os.environ["ORIGIN"]
+if os.environ["FX"]:
+    cfg["ambient_fx"] = "" if os.environ["FX"] == "off" else os.environ["FX"]
 json.dump(cfg, open(out, "w"), indent=2)
 EOF
 HKS=0
@@ -107,6 +118,7 @@ tools/theme.sh "$WORK/theme"
 say "Done. Press Home on the remote."
 cat <<EOF
 Move between the apps: the beam follows from his nearer hand. The arc reactor intro plays on the next power-on.
+Background: ${FX:-cycle} (fire, snow, fire & ice and storm in turn with "cycle"; change it with --fx).
 
 Watch the intro now:
   TV_HOST=$TV tools/venv/bin/python tools/tv.py 'am start -n com.gathin.tvhome/.MainActivity --ez com.gathin.tvhome.REPLAY_BOOT_INTRO true'

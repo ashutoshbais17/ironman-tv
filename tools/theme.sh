@@ -83,7 +83,7 @@ del() { echo "rm -f $DIR/$1 2>/dev/null; content delete --uri $URI/$1 2>/dev/nul
 CLEAR_WALLPAPERS="rm -f $DIR/wallpapers/*.[jJ][pP][gG] $DIR/wallpapers/*.[jJ][pP][eE][gG] $DIR/wallpapers/*.[pP][nN][gG] $DIR/wallpapers/*.[wW][eE][bB][pP] 2>/dev/null; content delete --uri $URI/wallpapers 2>/dev/null"
 
 if [ "${1:-}" = --reset ]; then
-  tv "mkdir -p $DIR 2>/dev/null; $(del config.json); $(del wallpaper.jpg); $(del wallpapers/captions.txt); $CLEAR_WALLPAPERS; printf '%s' '$REVISION' > $TMP-theme_revision; $(put theme_revision)" >/dev/null
+  tv "mkdir -p $DIR 2>/dev/null; $(del config.json); $(del wallpaper.jpg); $(del foreground.png); $(del wallpapers/captions.txt); $CLEAR_WALLPAPERS; printf '%s' '$REVISION' > $TMP-theme_revision; $(put theme_revision)" >/dev/null
   "$PY" -I theme_restart.py
   echo reset
   exit 0
@@ -137,6 +137,13 @@ if [ -f "$THEME/wallpaper.jpg" ]; then
   tv "$(put wallpaper.jpg)"
 else
   tv "$(del wallpaper.jpg)" >/dev/null
+fi
+# The wallpaper figure's cut-out, so ambient_fx particles pass behind it.
+if [ -f "$THEME/foreground.png" ]; then
+  "$PY" -I b64push.py "$THEME/foreground.png" "$TMP-foreground.png"
+  tv "$(put foreground.png)"
+else
+  tv "$(del foreground.png)" >/dev/null
 fi
 tv "$CLEAR_WALLPAPERS" >/dev/null
 for NAME in $NAMES; do

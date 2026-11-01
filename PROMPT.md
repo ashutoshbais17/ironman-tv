@@ -22,7 +22,9 @@ Work on the real TV, step by step, and check each step with a screenshot from th
 - Check the TV runs Android 8.0 (SDK 26) or newer, and accepts sideloaded apps.
 - Look in `devices/` for my model. If it isn't there, check https://github.com/Gathin23/cleanyourtv/tree/main/examples
   for a tested `config.json` for my model, and save it as `devices/<model>.json`.
-- Run `./install.sh <tv ip>` (Windows: `install.ps1`), adding `--device <model>` when there's a devices file. It
+- Ask me which background I want behind Iron Man: fire, snow, fireice, storm, all of them in turn (cycle, the
+  default) or none (off).
+- Run `./install.sh <tv ip> --fx <my pick>` (Windows: `install.ps1 -Fx`), adding `--device <model>` when there's a devices file. It
   reuses cleanyourtv's install script, which only disables the stock launcher once the new one is confirmed as
   Home, and rolls back if it isn't. Don't bypass those checks (`FORCE_HOME`, `FORCE_SETUPWRAITH`) without asking me.
 - After it finishes, take a screenshot, press DPAD_LEFT and DPAD_RIGHT across the dock, and confirm the beam leaves

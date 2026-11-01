@@ -1,5 +1,7 @@
 {
   "repulsor_beam": true,
+  "ambient_fx": "cycle",
+  "ambient_fx_minutes": 3,
   "clock_seconds": true,
   "date_below_clock": true,
   "app_glow": true,
@@ -7,6 +9,7 @@
   "wallpaper": true,
   "wallpaper_rotation_minutes": 60,
   "wallpaper_dim": 0,
+  "wallpaper_true_color": true,
   "dock_glass": true,
   "dock_opacity": 50,
   "dock_even_padding": true,

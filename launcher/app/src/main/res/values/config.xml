@@ -503,6 +503,15 @@
     <bool name="repulsor_beam">false</bool>
     <!-- The palms, as fractions of the screen: "x,y;x,y". Theme: "repulsor_origins". -->
     <string name="repulsor_origins" translatable="false"></string>
+    <!-- Particles over the wallpaper (AmbientFxView): "fire", "snow", "fireice", "storm", "cycle" (each in turn), or
+         empty for none. They pass behind the figure when the theme has a foreground.png, a cut-out of the figure from
+         the 1920x1080 wallpaper, whose top-left corner is foreground_origin ("x,y" in that picture's pixels).
+         Theme: "ambient_fx", "foreground_origin". -->
+    <string name="ambient_fx" translatable="false"></string>
+    <!-- With "cycle", minutes before the next effect fades in (it also moves on each return to Home).
+         Theme: "ambient_fx_minutes". -->
+    <integer name="ambient_fx_minutes">3</integer>
+    <string name="foreground_origin" translatable="false"></string>
     <!-- The rows fade out as they scroll up under the clock, instead of being cut off at a hard line (TopFade).
          The grid then draws into a hardware layer, about 6 MB of graphics memory at 1080p, so it is off by default.
          Can also be set with "fade_rows": true in a theme's config.json. -->

@@ -69,7 +69,7 @@ function Drop($name) { "rm -f $dir/$name 2>/dev/null; content delete --uri $uri/
 $clearWallpapers = "rm -f $dir/wallpapers/*.[jJ][pP][gG] $dir/wallpapers/*.[jJ][pP][eE][gG] $dir/wallpapers/*.[pP][nN][gG] $dir/wallpapers/*.[wW][eE][bB][pP] 2>/dev/null; content delete --uri $uri/wallpapers 2>/dev/null"
 
 if ($Reset) {
-    Invoke-Tv tv.py "mkdir -p $dir 2>/dev/null; $(Drop 'config.json'); $(Drop 'wallpaper.jpg'); $(Drop 'wallpapers/captions.txt'); $clearWallpapers; printf '%s' '$revision' > $tmp-theme_revision; $(Put 'theme_revision')" | Out-Null
+    Invoke-Tv tv.py "mkdir -p $dir 2>/dev/null; $(Drop 'config.json'); $(Drop 'wallpaper.jpg'); $(Drop 'foreground.png'); $(Drop 'wallpapers/captions.txt'); $clearWallpapers; printf '%s' '$revision' > $tmp-theme_revision; $(Put 'theme_revision')" | Out-Null
     & $py -I theme_restart.py
     if ($LASTEXITCODE) { throw 'Home restart recovery failed' }
     Write-Host 'reset'
@@ -102,6 +102,9 @@ Invoke-Tv tv.py --push $config "$tmp-config.json" | Out-Null
 Invoke-Tv tv.py (Put 'config.json')
 $wall = Join-Path $Theme 'wallpaper.jpg'
 if (Test-Path $wall) { Invoke-Tv b64push.py $wall "$tmp-wallpaper.jpg"; Invoke-Tv tv.py (Put 'wallpaper.jpg') } else { Invoke-Tv tv.py (Drop 'wallpaper.jpg') | Out-Null }
+# The wallpaper figure's cut-out, so ambient_fx particles pass behind it.
+$foreground = Join-Path $Theme 'foreground.png'
+if (Test-Path $foreground) { Invoke-Tv b64push.py $foreground "$tmp-foreground.png"; Invoke-Tv tv.py (Put 'foreground.png') } else { Invoke-Tv tv.py (Drop 'foreground.png') | Out-Null }
 Invoke-Tv tv.py $clearWallpapers | Out-Null
 foreach ($image in $images) {
     Invoke-Tv b64push.py $image.FullName (Stage "wallpapers/$($image.Name)")
