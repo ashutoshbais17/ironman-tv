@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Palm Calibrator</title>
+<style>
+  :root { --bg:#0b0d10; --panel:#14181d; --text:#e8eef4; --muted:#93a1ae; --accent:#6cc4ff; --line:#26303a; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  main { max-width: 1000px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  p { color: var(--muted); margin: 0 0 16px; }
+  .row { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin: 12px 0; }
+  button, label.file { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:10px 16px; font:inherit; cursor:pointer; }
+  button:hover, label.file:hover { border-color: var(--accent); }
+  input[type=file] { display:none; }
+  .stage { position:relative; width:100%; aspect-ratio:16/9; background:#000; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  canvas { position:absolute; inset:0; width:100%; height:100%; cursor:crosshair; }
+  .empty { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--muted); pointer-events:none; text-align:center; padding:16px; }
+  pre { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px; overflow-x:auto; white-space:pre-wrap; word-break:break-all; margin:0; }
+  ol { color: var(--muted); padding-left: 20px; }
+  code { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Palm calibrator</h1>
+  <p>Find where the beam starts on your own wallpaper. Nothing leaves your computer.</p>
+  <ol>
+    <li>Load your picture. It's shown cropped to 16:9, exactly as the TV will show it.</li>
+    <li>Click the centre of each glowing palm (one or more). Move the mouse to preview the beam.</li>
+    <li>Copy the install command at the bottom.</li>
+  </ol>
+  <div class="row">
+    <label class="file">Load picture<input id="file" type="file" accept="image/*"></label>
+    <button id="undo" type="button">Undo last palm</button>
+    <button id="clear" type="button">Clear palms</button>
+  </div>
+  <div class="stage">
+    <canvas id="c" width="1920" height="1080" aria-label="Wallpaper preview; click to mark a palm"></canvas>
+    <div class="empty" id="empty">Load a picture to start</div>
+  </div>
+  <div class="row"><strong>Palm positions</strong></div>
+  <pre id="origins">(none yet)</pre>
+  <div class="row"><strong>Install with this picture</strong></div>
+  <pre id="cmd">(mark at least one palm)</pre>
+</main>
+<script>
+(() => {
+  const c = document.getElementById('c'), g = c.getContext('2d');
+  const W = c.width, H = c.height;
+  let img = null, name = 'my-wallpaper.jpg';
+  const palms = [];
+  let mouse = null;
+
+  function drawImageCover() {
+    // Centre-crop to 16:9, matching ironman/prep_wallpaper.py.
+    const r = 16 / 9, iw = img.naturalWidth, ih = img.naturalHeight;
+    let sx = 0, sy = 0, sw = iw, sh = ih;
+    if (iw / ih > r) { sw = Math.round(ih * r); sx = Math.floor((iw - sw) / 2); }
+    else { sh = Math.round(iw / r); sy = Math.floor((ih - sh) / 2); }
+    g.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+  }
+
+  function glow(x, y, r, a) {
+    const grad = g.createRadialGradient(x, y, 0, x, y, r);
+    grad.addColorStop(0, `rgba(255,255,255,${a})`);
+    grad.addColorStop(0.28, `rgba(158,224,255,${a * 0.7})`);
+    grad.addColorStop(1, 'rgba(69,168,255,0)');
+    g.fillStyle = grad; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+  }
+
+  function draw() {
+    g.clearRect(0, 0, W, H);
+    if (!img) return;
+    drawImageCover();
+    let near = -1, best = Infinity;
+    palms.forEach((p, i) => {
+      const d = mouse ? Math.abs(p.x * W - mouse.x) : Infinity;
+      if (d < best) { best = d; near = i; }
+    });
+    if (mouse && near >= 0) {
+      const sx = palms[near].x * W, sy = palms[near].y * H;
+      [[60, 'rgba(69,168,255,0.09)'], [36, 'rgba(108,196,255,0.18)'], [20, 'rgba(158,220,255,0.38)'], [10, 'rgba(216,243,255,0.7)'], [4, '#fff']]
+        .forEach(([w, col]) => { g.strokeStyle = col; g.lineWidth = w; g.lineCap = 'round'; g.beginPath(); g.moveTo(sx, sy); g.lineTo(mouse.x, mouse.y); g.stroke(); });
+    }
+    palms.forEach((p, i) => {
+      glow(p.x * W, p.y * H, i === near && mouse ? 90 : 60, 0.9);
+      g.strokeStyle = '#7CFF8A'; g.lineWidth = 3;
+      g.beginPath(); g.moveTo(p.x * W - 16, p.y * H); g.lineTo(p.x * W + 16, p.y * H);
+      g.moveTo(p.x * W, p.y * H - 16); g.lineTo(p.x * W, p.y * H + 16); g.stroke();
+    });
+    const spec = palms.map(p => `${p.x.toFixed(4)},${p.y.toFixed(4)}`).join(';');
+    document.getElementById('origins').textContent = spec ? `"repulsor_origins": "${spec}"` : '(none yet)';
+    document.getElementById('cmd').textContent = spec
+      ? `Mac / Linux:\n./install.sh <tv-ip> --wallpaper ${name} --palms "${spec}"\n\nWindows:\n.\\install.ps1 -TvHost <tv-ip> -Wallpaper ${name} -Palms "${spec}"\n\nAdd --no-darken / -NoDarken if your picture is already dark.`
+      : '(mark at least one palm)';
+  }
+
+  function at(e) {
+    const r = c.getBoundingClientRect();
+    return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H };
+  }
+
+  document.getElementById('file').addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    name = f.name.replace(/\s+/g, '-');
+    const im = new Image();
+    im.onload = () => { img = im; palms.length = 0; document.getElementById('empty').style.display = 'none'; draw(); };
+    im.src = URL.createObjectURL(f);
+  });
+  c.addEventListener('click', e => { if (!img) return; const p = at(e); palms.push({ x: p.x / W, y: p.y / H }); draw(); });
+  c.addEventListener('mousemove', e => { if (!img) return; mouse = at(e); draw(); });
+  c.addEventListener('mouseleave', () => { mouse = null; draw(); });
+  document.getElementById('undo').addEventListener('click', () => { palms.pop(); draw(); });
+  document.getElementById('clear').addEventListener('click', () => { palms.length = 0; draw(); });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+tools/venv/
+tools/adbkey/
+__pycache__/
+launcher/.gradle/
+launcher/build/
+launcher/app/build/
+launcher/local.properties
+launcher/hs_err_pid*.log
+launcher/replay_pid*.log
+# the installer's working folder: the downloaded wallpaper and the theme it builds
+.work/
+# your own TV's dumps and screenshots stay local
+backup/
+shots/
+*.apk
+*.aab
+.DS_Store
