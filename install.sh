@@ -5,9 +5,12 @@
 #   ./install.sh <tv-ip> --device thomson-sppl-4k-sw6h     plus the settings for a TV listed in devices/
 #   ./install.sh <tv-ip> --wallpaper me.jpg --palms "0.42,0.31"   your own picture (palms from ironman/calibrate.html)
 #   ./install.sh <tv-ip> --fx snow                         one background effect instead of all of them in turn
+#   ./install.sh <tv-ip> --label "WELCOME MR. STARK" --voice hello.mp3   your own greeting, written and spoken
 #
-# Options: --fx fire|snow|fireice|storm|cycle|off (default cycle), --no-darken (keep your picture's colours),
-# --apk <file> (a launcher APK you built yourself).
+# Options: --fx fire|snow|fireice|storm|cycle|off (default cycle); --label "<text>"|off (what his right hand
+# projects, default WELCOME HOME); --voice <file.mp3> (played at start-up) or --say "<text>"|off with
+# --say-lang <tag> (spoken by the TV's own voice, default a Hindi welcome); --no-darken (keep your picture's
+# colours); --apk <file> (a launcher APK you built yourself).
 # Before running: on the TV, Settings > Device Preferences > About > press OK on "Build" 7 times, then
 # Developer options > turn on USB debugging (and Network debugging, if the TV shows it).
 set -euo pipefail
@@ -17,9 +20,9 @@ REPO="ashutoshbais17/ironman-tv"
 
 say() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 die() { printf '\n\033[1;31m%s\033[0m\n' "$*" >&2; exit 1; }
-usage() { sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
+usage() { sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
 
-TV="" DEVICE="" WALL="" PALMS="" DARKEN=1 APK="" FX=""
+TV="" DEVICE="" WALL="" PALMS="" DARKEN=1 APK="" FX="" LABEL="" VOICE="" SAY="" SAYLANG=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --device) DEVICE="${2:?--device needs a name}"; shift 2 ;;
@@ -28,6 +31,10 @@ while [ $# -gt 0 ]; do
     --no-darken) DARKEN=0; shift ;;
     --apk) APK="${2:?--apk needs a file}"; shift 2 ;;
     --fx) FX="${2:?--fx needs fire, snow, fireice, storm, cycle or off}"; shift 2 ;;
+    --label) LABEL="${2:?--label needs text, or off}"; shift 2 ;;
+    --voice) VOICE="${2:?--voice needs an .mp3 file}"; shift 2 ;;
+    --say) SAY="${2:?--say needs text, or off}"; shift 2 ;;
+    --say-lang) SAYLANG="${2:?--say-lang needs a language tag such as en-GB}"; shift 2 ;;
     -h|--help) usage ;;
     -*) die "unknown option $1 (see ./install.sh --help)" ;;
     *) [ -z "$TV" ] || die "one TV address only"; TV="$1"; shift ;;
@@ -35,6 +42,10 @@ while [ $# -gt 0 ]; do
 done
 [ -n "$TV" ] || usage
 case "${FX:-cycle}" in fire|snow|fireice|storm|cycle|off) ;; *) die "--fx is one of fire, snow, fireice, storm, cycle, off" ;; esac
+if [ -n "$VOICE" ]; then
+  [ -f "$VOICE" ] || die "no such file: $VOICE"
+  case "$VOICE" in *.[mM][pP]3) ;; *) die "--voice needs an .mp3 file" ;; esac
+fi
 if [ -n "$DEVICE" ] && [ ! -f "devices/$DEVICE.json" ]; then
   die "no devices/$DEVICE.json. Known: $(ls devices | sed 's/\.json$//' | tr '\n' ' ')"
 fi
@@ -91,9 +102,10 @@ fi
 "$PY" -I ironman/prep_wallpaper.py "$WALL" "$WORK/theme/wallpapers/01-wallpaper.jpg" \
   --cutout "$WORK/theme/foreground.png" $([ "$DARKEN" = 1 ] || echo --no-darken) | tee "$WORK/prep.log"
 ORIGIN="$(sed -n 's/^foreground_origin //p' "$WORK/prep.log")"
+[ -z "$VOICE" ] || cp "$VOICE" "$WORK/theme/greeting.mp3"
 
 # The theme: the skin's settings, the TV's own (devices/), where the palms are, and the background effect.
-FX="$FX" ORIGIN="$ORIGIN" "$PY" -I - "$WORK/theme/config.json" "$PALMS" ${DEVICE:+"devices/$DEVICE.json"} <<'EOF'
+FX="$FX" ORIGIN="$ORIGIN" LABEL="$LABEL" SAY="$SAY" SAYLANG="$SAYLANG" "$PY" -I - "$WORK/theme/config.json" "$PALMS" ${DEVICE:+"devices/$DEVICE.json"} <<'EOF'
 import json, os, sys
 out, palms, extra = sys.argv[1], sys.argv[2], sys.argv[3:]
 cfg = json.load(open("ironman/theme/config.json"))
@@ -104,6 +116,9 @@ if os.environ["ORIGIN"]:
     cfg["foreground_origin"] = os.environ["ORIGIN"]
 if os.environ["FX"]:
     cfg["ambient_fx"] = "" if os.environ["FX"] == "off" else os.environ["FX"]
+for env, key in (("LABEL", "repulsor_greeting"), ("SAY", "greeting_speech"), ("SAYLANG", "greeting_speech_lang")):
+    if os.environ[env]:
+        cfg[key] = "" if os.environ[env] == "off" else os.environ[env]
 json.dump(cfg, open(out, "w"), indent=2)
 EOF
 HKS=0
@@ -117,8 +132,9 @@ tools/theme.sh "$WORK/theme"
 
 say "Done. Press Home on the remote."
 cat <<EOF
-Move between the apps: the beam follows from his nearer hand. The arc reactor intro plays on the next power-on.
+Move between the apps: his left hand fires at whatever you pick. The arc reactor intro plays on the next power-on.
 Background: ${FX:-cycle} (fire, snow, fire & ice and storm in turn with "cycle"; change it with --fx).
+His right hand projects: ${LABEL:-WELCOME HOME} (change it with --label). The greeting plays with the intro.
 
 Watch the intro now:
   TV_HOST=$TV tools/venv/bin/python tools/tv.py 'am start -n com.gathin.tvhome/.MainActivity --ez com.gathin.tvhome.REPLAY_BOOT_INTRO true'

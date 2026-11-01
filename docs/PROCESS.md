@@ -194,17 +194,47 @@ core while Home was on screen:
 - Soft glow bitmaps around each snowflake came out as hard rings once batched as points. The snow lost its
   halo; the embers got three glow steps, which reads as fire seen out of focus.
 
+## 10. Version 1.2: a hologram greeting and a spoken welcome
+
+The ask: the left hand follows the selection, the right hand shines into the centre with WELCOME MR. ASHU under
+the light, and a voice at the arc reactor start-up.
+
+**One hand each.** With `repulsor_greeting` set, the first palm fires at whatever has focus, everywhere, and the
+second palm projects the text. The trade-off, accepted: for apps on the right, the beam now crosses in front of
+him.
+
+**Making the beam and the words one thing.** The first preview had a short beam ending in a ring, with the words
+underneath, and it looked like two separate things. What went in is a projector: a fan of light from the palm
+out to the whole text block, streaks running from the hand into the letters, a bright plate under the words with
+corner ticks, and the words as a hologram (a faint cyan ghost, a glow, scan lines drifting down, an occasional
+flicker). It sits in the open space right of his body, the one clear area that covers neither him nor the clock,
+the buttons or the apps. The font is Audiowide (SIL Open Font License), picked from four in the preview over
+Orbitron, Rajdhani and Exo 2.
+
+**The voice** (`BootGreeting`):
+- Tried first: the Mac's built-in voices. A British male voice with a "suit" treatment (a little deeper, a
+  tighter sound, a short echo), then Indian English voices, then the Mac's only Hindi voice. None sounded
+  natural; they're older, robotic-style voices. JARVIS's real voice was never an option: it's an actor's voice.
+- What worked: a neural voice made on ElevenLabs ("Angad"), saying "राम राम जी! आज क्या देखना पसंद करेंगे?".
+  The clip only had its loudness evened out, to keep it natural.
+- The theme carries it as `greeting.mp3`, and it plays 0.45 s into the intro, as the reactor's segments light.
+  Without a file, the TV's own text-to-speech reads `greeting_speech` in `greeting_speech_lang`. Every follower's
+  TV has that, so it's the default: the Hindi line above.
+- Right after a boot the theme folder can still be unreadable (shared storage not mounted yet), so the launcher
+  keeps a copy of the clip in its own storage and plays that.
+
 ## What changed in the launcher
 
 | File | What it does |
 |---|---|
-| `RepulsorBeamView.java` | The beam, the palm flares, the shot, the hand switching |
+| `RepulsorBeamView.java` | The beam, the palm flares, the shot, the hand switching, the hologram greeting |
+| `BootGreeting.java` | The spoken welcome with the arc reactor intro: the theme's clip, or the TV's own voice |
 | `AmbientFxView.java` | Fire, snow, fire & ice and storm, drawn behind the cut-out of the figure |
-| `ThemeFiles.java` | Lets a theme carry `foreground.png` |
+| `ThemeFiles.java` | Lets a theme carry `foreground.png` and `greeting.mp3` |
 | `ArcReactorBootView.java` | The boot intro |
 | `RollingSecondsView.java` | The rolling seconds |
 | `SharinganView.java` | The eye (off by default; `"sharingan": true` in a theme brings it back) |
-| `Config.java` | `Config.Skin`: reads the skin's keys (`repulsor_*`, `ambient_fx*`, `foreground_origin`) from `config.xml` and the theme |
+| `Config.java` | `Config.Skin`: reads the skin's keys (`repulsor_*`, `ambient_fx*`, `foreground_origin`, `greeting_speech*`) from `config.xml` and the theme |
 | `MainActivity.java` | Wires them in: focus tracking, fading with the dock title, boot-once logic, replay intent, start/stop with Home |
 | `activity_main.xml` | The new views |
 | `res/values/config.xml` | The new keys, all off by default |

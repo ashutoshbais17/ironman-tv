@@ -10,6 +10,7 @@ import android.graphics.Path;
 import android.graphics.RadialGradient;
 import android.graphics.RectF;
 import android.graphics.Shader;
+import android.graphics.Typeface;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -71,6 +72,21 @@ final class RepulsorBeamView extends View {
     private final float[][] streakPts = new float[LEVELS][STREAKS * 4], sparkPts = new float[LEVELS][SPARKS * 2];
     private final int[] batch = new int[LEVELS];
 
+    // repulsor_greeting: the second palm projects a line of text as a hologram, and the first follows focus alone.
+    private static final int GREET_STREAKS = 14;
+    private String greeting = "";
+    private float greetX, greetY;
+    private final Paint greetText = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint greetFill = new Paint();
+    private final Path fan = new Path();
+    private final float[] greetFrom = new float[GREET_STREAKS], greetSpeed = new float[GREET_STREAKS],
+            greetAcross = new float[GREET_STREAKS], greetLength = new float[GREET_STREAKS];
+    private final float[] scanPts = new float[60 * 4];
+    private final float[] tickPts = new float[16];
+    /** The projection's layout, worked out when the size or the text changes: text block and its plate. */
+    private float gx0, gx1, gTop, gPlate, gCx, gBase;
+    private Shader fanShader, plateShader, textShader;
+
     /** Palm centres as fractions of the screen: {x0, y0, x1, y1, ...}. */
     private float[] origins = new float[0];
     private int hand = -1;
@@ -118,11 +134,74 @@ final class RepulsorBeamView extends View {
             sparkSide[i] = rnd.nextFloat() * 2f - 1f;
             sparkWobble[i] = rnd.nextFloat();
         }
+        for (int i = 0; i < GREET_STREAKS; i++) {
+            greetFrom[i] = rnd.nextFloat();
+            greetSpeed[i] = 0.7f + rnd.nextFloat() * 0.6f;
+            greetAcross[i] = rnd.nextFloat();
+            greetLength[i] = 0.12f + rnd.nextFloat() * 0.12f;
+        }
+        greetText.setTextAlign(Paint.Align.CENTER);
+        greetText.setTextSize(18f * dp);
+        greetText.setLetterSpacing(0.22f);
     }
 
     void setOrigins(float[] fractions) {
         origins = fractions;
         invalidate();
+    }
+
+    /**
+     * The second palm projects {@code text} in {@code face}, its baseline centred on {@code at} (fractions of the
+     * screen), and the first palm alone follows focus. Empty text keeps both palms firing at focus.
+     */
+    void setGreeting(String text, float[] at, Typeface face) {
+        greeting = text == null ? "" : text.trim();
+        if (at != null && at.length >= 2) {
+            greetX = at[0];
+            greetY = at[1];
+        }
+        if (face != null) greetText.setTypeface(face);
+        layoutGreeting();
+        invalidate();
+    }
+
+    private boolean greeting() {
+        return !greeting.isEmpty() && origins.length >= 4;
+    }
+
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        layoutGreeting();
+    }
+
+    private void layoutGreeting() {
+        if (!greeting() || getWidth() == 0) return;
+        float w = getWidth(), h = getHeight();
+        float px = origins[2] * w, py = origins[3] * h;
+        gCx = greetX * w;
+        gBase = greetY * h;
+        float half = greetText.measureText(greeting) / 2f + 13f * dp;
+        gx0 = gCx - half;
+        gx1 = gCx + half;
+        gTop = gBase - 23f * dp;
+        gPlate = gBase + 9f * dp;
+        fan.reset();
+        fan.moveTo(px, py);
+        fan.lineTo(gx1, gTop);
+        fan.lineTo(gx1, gPlate);
+        fan.lineTo(gx0, gPlate);
+        fan.lineTo(gx0, gTop);
+        fan.close();
+        fanShader = new LinearGradient(px, py, gCx, gBase, new int[]{0x6196D7FF, 0x1F5AB4FF, 0x125AB4FF},
+                new float[]{0f, 0.55f, 1f}, Shader.TileMode.CLAMP);
+        plateShader = new LinearGradient(gx0, 0f, gx1, 0f, new int[]{0x008CD7FF, 0xF2EBFAFF, 0x008CD7FF}, null,
+                Shader.TileMode.CLAMP);
+        textShader = new LinearGradient(0f, gBase - 17f * dp, 0f, gBase, 0xFFFFFFFF, 0xFF9FDCFF, Shader.TileMode.CLAMP);
+        float tick = 6f * dp;
+        float[] t = {gx0, gTop, gx0, gTop + tick, gx0, gTop, gx0 + tick, gTop,
+                gx1, gTop, gx1, gTop + tick, gx1, gTop, gx1 - tick, gTop};
+        System.arraycopy(t, 0, tickPts, 0, t.length);
     }
 
     void start() {
@@ -173,7 +252,8 @@ final class RepulsorBeamView extends View {
         ty -= loc[1];
         int nearest = 0;
         float best = Float.MAX_VALUE;
-        for (int i = 0; i + 1 < origins.length; i += 2) {
+        // With a greeting the second palm is busy projecting it, so the first fires at everything.
+        for (int i = 0; i + 1 < origins.length && !greeting(); i += 2) {
             float d = Math.abs(origins[i] * getWidth() - tx);
             if (d < best) {
                 best = d;
@@ -279,6 +359,85 @@ final class RepulsorBeamView extends View {
         shape.close();
     }
 
+    /**
+     * The second palm projecting the greeting: a fan of light out to the text block, streaks of light running from
+     * the hand into the letters, a bright plate under the words, and the words as a flickering hologram with scan
+     * lines.
+     */
+    private void drawGreeting(Canvas canvas, float t, float pulse) {
+        if (fanShader == null) layoutGreeting();
+        if (fanShader == null) return;
+        float px = origins[2] * getWidth(), py = origins[3] * getHeight();
+        float flicker = frac(t * 0.37f) > 0.97f ? 0.55f : 1f;
+
+        cone.setShader(fanShader);
+        cone.setAlpha((int) (255 * (0.8f + 0.2f * pulse)));
+        canvas.drawPath(fan, cone);
+        greetFill.setShader(null);
+        greetFill.setColor(0xFF78C8FF);
+        greetFill.setAlpha((int) (255 * (0.05f + 0.02f * pulse)));
+        canvas.drawRect(gx0, gTop, gx1, gPlate, greetFill);
+
+        // Light streaking from the hand into the letters, one batch.
+        int n = 0;
+        float midY = (gTop + gPlate) / 2f;
+        for (int i = 0; i < GREET_STREAKS; i++) {
+            float s0 = frac(greetFrom[i] + t * greetSpeed[i]), s1 = Math.min(1f, s0 + greetLength[i]);
+            float tx = gx0 + (gx1 - gx0) * greetAcross[i];
+            streakPts[0][n] = px + (tx - px) * s0;
+            streakPts[0][n + 1] = py + (midY - py) * s0;
+            streakPts[0][n + 2] = px + (tx - px) * s1;
+            streakPts[0][n + 3] = py + (midY - py) * s1;
+            n += 4;
+        }
+        line.setShader(null);
+        line.setColor(0xFFDCF5FF);
+        line.setAlpha(110);
+        line.setStrokeWidth(1.2f * dp);
+        canvas.drawLines(streakPts[0], 0, n, line);
+
+        // The plate the words stand on, with a soft glow under a bright line, and corner ticks above.
+        line.setShader(plateShader);
+        line.setAlpha(80);
+        line.setStrokeWidth(6f * dp);
+        canvas.drawLine(gx0, gPlate, gx1, gPlate, line);
+        line.setAlpha(255);
+        line.setStrokeWidth(1.5f * dp);
+        canvas.drawLine(gx0, gPlate, gx1, gPlate, line);
+        line.setShader(null);
+        line.setColor(0xFFA0E1FF);
+        line.setAlpha(217);
+        line.setStrokeWidth(1f * dp);
+        canvas.drawLines(tickPts, line);
+
+        // The words: a faint cyan ghost, then the glowing letters.
+        float a = (0.86f + 0.14f * pulse) * flicker;
+        greetText.setShader(null);
+        greetText.clearShadowLayer();
+        greetText.setColor(0xFF50DCFF);
+        greetText.setAlpha((int) (90 * a));
+        canvas.drawText(greeting, gCx + 1.5f * dp, gBase, greetText);
+        greetText.setShader(textShader);
+        greetText.setShadowLayer(10f * dp, 0f, 0f, 0xF250BEFF);
+        greetText.setAlpha((int) (255 * a));
+        canvas.drawText(greeting, gCx, gBase, greetText);
+
+        // Scan lines drifting down through the words.
+        n = 0;
+        float gap = 2.5f * dp;
+        for (float y = gTop + (t * 15f * dp) % gap; y < gPlate && n + 4 <= scanPts.length; y += gap) {
+            scanPts[n] = gx0;
+            scanPts[n + 1] = y;
+            scanPts[n + 2] = gx1;
+            scanPts[n + 3] = y;
+            n += 4;
+        }
+        line.setColor(0xFF050F1E);
+        line.setAlpha(70);
+        line.setStrokeWidth(0.75f * dp);
+        canvas.drawLines(scanPts, 0, n, line);
+    }
+
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
@@ -291,13 +450,16 @@ final class RepulsorBeamView extends View {
 
         // Every palm glows and pulses, with a lens streak; the firing one brighter.
         for (int i = 0; i + 1 < origins.length; i += 2) {
+            boolean projecting = greeting() && i == 2;
             boolean firing = aimed && i / 2 == hand;
             float px = origins[i] * w, py = origins[i + 1] * h;
-            float r = (firing ? 46f : 30f) * dp * (0.9f + 0.2f * pulse + (firing ? 0.35f * charge : 0f));
-            blob(canvas, flare, px, py, r, r, 0f, firing ? 0.93f : 0.6f);
-            blob(canvas, flare, px, py, (firing ? 120f : 70f) * dp * (1f + 0.3f * charge), 3.5f * dp, 0f,
-                    (firing ? 0.55f : 0.3f) * (0.8f + 0.2f * pulse));
+            float boost = firing ? 0.35f * charge : 0f;
+            float r = (firing || projecting ? 46f : 30f) * dp * (0.9f + 0.2f * pulse + boost);
+            blob(canvas, flare, px, py, r, r, 0f, firing || projecting ? 0.93f : 0.6f);
+            blob(canvas, flare, px, py, (firing || projecting ? 120f : 70f) * dp * (1f + 0.3f * charge * (firing ? 1f : 0f)),
+                    3.5f * dp, 0f, (firing || projecting ? 0.55f : 0.3f) * (0.8f + 0.2f * pulse));
         }
+        if (greeting()) drawGreeting(canvas, t, pulse);
         if (!aimed || hand < 0 || hand * 2 + 1 >= origins.length) return;
 
         float sx = origins[hand * 2] * w, sy = origins[hand * 2 + 1] * h;

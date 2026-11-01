@@ -27,6 +27,10 @@ The Outfit typeface in launcher/app/src/main/res/font/outfit.ttf is copyright
 The Outfit Project Authors and licensed under the SIL Open Font License 1.1,
 see launcher/FONT-LICENSE-OFL.txt.
 
+The Audiowide typeface in launcher/app/src/main/res/font/audiowide.ttf is copyright
+2012 Brian J. Bonislawsky DBA Astigmatic (AOETI) and licensed under the SIL Open Font
+License 1.1, see launcher/FONT-LICENSE-OFL-AUDIOWIDE.txt.
+
 Iron Man is a trademark of Marvel. This project is an unofficial fan
 customization, not affiliated with or endorsed by Marvel or Disney. No Marvel
 artwork is included in this repository: the installer downloads the wallpaper

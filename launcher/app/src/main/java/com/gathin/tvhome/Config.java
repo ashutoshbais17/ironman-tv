@@ -427,7 +427,8 @@ final class Config {
      */
     static final class Skin {
         boolean clockSeconds, sharingan, repulsorBeam;
-        String repulsorOrigins, ambientFx, foregroundOrigin;
+        String repulsorOrigins, ambientFx, foregroundOrigin, repulsorGreeting, repulsorGreetingAt, greetingSpeech,
+                greetingSpeechLang;
         int ambientFxMinutes;
 
         static Skin load(Context ctx) {
@@ -440,6 +441,10 @@ final class Config {
             s.ambientFx = res.getString(R.string.ambient_fx);
             s.ambientFxMinutes = res.getInteger(R.integer.ambient_fx_minutes);
             s.foregroundOrigin = res.getString(R.string.foreground_origin);
+            s.repulsorGreeting = res.getString(R.string.repulsor_greeting);
+            s.repulsorGreetingAt = res.getString(R.string.repulsor_greeting_at);
+            s.greetingSpeech = res.getString(R.string.greeting_speech);
+            s.greetingSpeechLang = res.getString(R.string.greeting_speech_lang);
             File d = dir(ctx);
             JSONObject json = read(d != null ? new File(d, FILE_NAME) : null);
             // load() keeps a copy for when external storage is not mounted yet (right after boot).
@@ -452,6 +457,10 @@ final class Config {
                 s.ambientFx = string(json, "ambient_fx", s.ambientFx);
                 s.ambientFxMinutes = integer(json, "ambient_fx_minutes", s.ambientFxMinutes, 1, 120);
                 s.foregroundOrigin = string(json, "foreground_origin", s.foregroundOrigin);
+                s.repulsorGreeting = string(json, "repulsor_greeting", s.repulsorGreeting);
+                s.repulsorGreetingAt = string(json, "repulsor_greeting_at", s.repulsorGreetingAt);
+                s.greetingSpeech = string(json, "greeting_speech", s.greetingSpeech);
+                s.greetingSpeechLang = string(json, "greeting_speech_lang", s.greetingSpeechLang);
             }
             return s;
         }

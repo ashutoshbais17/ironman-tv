@@ -4,9 +4,12 @@
 #   ... -TvHost 192.168.1.50 -Device thomson-sppl-4k-sw6h          plus the settings for a TV listed in devices\
 #   ... -TvHost 192.168.1.50 -Wallpaper me.jpg -Palms "0.42,0.31"   your own picture (palms from ironman\calibrate.html)
 #   ... -TvHost 192.168.1.50 -Fx snow                                one background effect instead of all of them in turn
+#   ... -TvHost 192.168.1.50 -Label "WELCOME MR. STARK" -Voice hello.mp3   your own greeting, written and spoken
 #
-# Options: -Fx fire|snow|fireice|storm|cycle|off (default cycle), -NoDarken (keep your picture's colours),
-# -Apk <file> (a launcher APK you built yourself).
+# Options: -Fx fire|snow|fireice|storm|cycle|off (default cycle); -Label "<text>"|off (what his right hand
+# projects, default WELCOME HOME); -Voice <file.mp3> (played at start-up) or -Say "<text>"|off with
+# -SayLang <tag> (spoken by the TV's own voice, default a Hindi welcome); -NoDarken (keep your picture's
+# colours); -Apk <file> (a launcher APK you built yourself).
 # Before running: on the TV, Settings > Device Preferences > About > press OK on "Build" 7 times, then
 # Developer options > turn on USB debugging (and Network debugging, if the TV shows it).
 param(
@@ -16,7 +19,11 @@ param(
     [string]$Palms = '',
     [switch]$NoDarken,
     [string]$Apk = '',
-    [ValidateSet('', 'fire', 'snow', 'fireice', 'storm', 'cycle', 'off')][string]$Fx = ''
+    [ValidateSet('', 'fire', 'snow', 'fireice', 'storm', 'cycle', 'off')][string]$Fx = '',
+    [string]$Label = '',
+    [string]$Voice = '',
+    [string]$Say = '',
+    [string]$SayLang = ''
 )
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
@@ -30,6 +37,8 @@ if ($Device -and -not (Test-Path "devices\$Device.json")) {
     $known = (Get-ChildItem devices -Filter *.json | ForEach-Object { $_.BaseName }) -join ' '
     Die "no devices\$Device.json. Known: $known"
 }
+if ($Voice -and -not (Test-Path $Voice)) { Die "no such file: $Voice" }
+if ($Voice -and $Voice -notmatch '\.mp3$') { Die '-Voice needs an .mp3 file' }
 if ($Wallpaper -and -not $Palms) { Die '-Wallpaper needs -Palms too. Open ironman\calibrate.html, load your picture and click the palms.' }
 
 $base = $null
@@ -101,6 +110,7 @@ if ($LASTEXITCODE -ne 0) { Die 'Could not prepare the wallpaper.' }
 $prepOut | Where-Object { $_ -notmatch '^foreground_origin ' } | ForEach-Object { Write-Host $_ }
 $origin = ''
 $prepOut | Where-Object { $_ -match '^foreground_origin (.+)$' } | ForEach-Object { $origin = $Matches[1] }
+if ($Voice) { Copy-Item $Voice (Join-Path $theme 'greeting.mp3') -Force }
 
 # The theme: the skin's settings, the TV's own (devices\), where the palms are, and the background effect.
 $merge = @'
@@ -110,14 +120,21 @@ cfg = json.load(open("ironman/theme/config.json"))
 for path in extra:
     cfg.update(json.load(open(path)))
 cfg["repulsor_origins"] = palms
-if os.environ["ORIGIN"]:
+# PowerShell removes a variable set to '', so a missing one means "not given".
+if os.environ.get("ORIGIN"):
     cfg["foreground_origin"] = os.environ["ORIGIN"]
-if os.environ["FX"]:
+if os.environ.get("FX"):
     cfg["ambient_fx"] = "" if os.environ["FX"] == "off" else os.environ["FX"]
+for env, key in (("LABEL", "repulsor_greeting"), ("SAY", "greeting_speech"), ("SAYLANG", "greeting_speech_lang")):
+    if os.environ.get(env):
+        cfg[key] = "" if os.environ[env] == "off" else os.environ[env]
 json.dump(cfg, open(out, "w"), indent=2)
 '@
 $env:ORIGIN = $origin
 $env:FX = $Fx
+$env:LABEL = $Label
+$env:SAY = $Say
+$env:SAYLANG = $SayLang
 $mergeFile = Join-Path $work 'merge.py'
 Set-Content -Path $mergeFile -Value $merge -Encoding ASCII
 $margs = @('-I', $mergeFile, (Join-Path $theme 'config.json'), $Palms)
@@ -137,8 +154,9 @@ Say 'Applying the Iron Man theme'
 
 Say 'Done. Press Home on the remote.'
 Write-Host @"
-Move between the apps: the beam follows from his nearer hand. The arc reactor intro plays on the next power-on.
+Move between the apps: his left hand fires at whatever you pick. The arc reactor intro plays on the next power-on.
 Background: $(if ($Fx) { $Fx } else { 'cycle' }) (fire, snow, fire & ice and storm in turn with "cycle"; change it with -Fx).
+His right hand projects: $(if ($Label) { $Label } else { 'WELCOME HOME' }) (change it with -Label). The greeting plays with the intro.
 
 Watch the intro now:
   `$env:TV_HOST='$TvHost'; tools\venv\Scripts\python.exe tools\tv.py 'am start -n com.gathin.tvhome/.MainActivity --ez com.gathin.tvhome.REPLAY_BOOT_INTRO true'

@@ -512,6 +512,16 @@
          Theme: "ambient_fx_minutes". -->
     <integer name="ambient_fx_minutes">3</integer>
     <string name="foreground_origin" translatable="false"></string>
+    <!-- With repulsor_beam, the second palm projects this text as a hologram (in Audiowide) and the first palm alone
+         follows focus. Empty keeps both palms firing at focus. Theme: "repulsor_greeting". -->
+    <string name="repulsor_greeting" translatable="false"></string>
+    <!-- Where the greeting's baseline is centred, as fractions of the screen: "x,y". Theme: "repulsor_greeting_at". -->
+    <string name="repulsor_greeting_at" translatable="false">0.8125,0.4444</string>
+    <!-- Spoken with the arc reactor intro by the TV's text-to-speech when the theme has no greeting.mp3
+         (BootGreeting), in greeting_speech_lang (a language tag such as "hi-IN"). Empty says nothing.
+         Theme: "greeting_speech", "greeting_speech_lang". -->
+    <string name="greeting_speech" translatable="false"></string>
+    <string name="greeting_speech_lang" translatable="false"></string>
     <!-- The rows fade out as they scroll up under the clock, instead of being cut off at a hard line (TopFade).
          The grid then draws into a hardware layer, about 6 MB of graphics memory at 1080p, so it is off by default.
          Can also be set with "fade_rows": true in a theme's config.json. -->

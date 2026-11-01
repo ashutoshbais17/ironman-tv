@@ -439,6 +439,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean fxOn;
     private AmbientFxView fx;
     private String foregroundOrigin;
+    private BootGreeting greeter;
+    private String greetingSpeech, greetingSpeechLang;
     private java.util.Map<Integer, String> homeHoldAppKeys = java.util.Collections.emptyMap();
 
     @Override
@@ -566,7 +568,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (beamOn) {
             beam = findViewById(R.id.repulsorBeam);
             beam.setOrigins(parseOrigins(skin.repulsorOrigins));
+            beam.setGreeting(skin.repulsorGreeting, parseOrigins(skin.repulsorGreetingAt),
+                    getResources().getFont(R.font.audiowide));
             beam.setVisibility(View.VISIBLE);
+            greeter = new BootGreeting(this);
+            greetingSpeech = skin.greetingSpeech;
+            greetingSpeechLang = skin.greetingSpeechLang;
             // Aims at every focus change, and shows only with the top shelf, as the eye does.
             root.getViewTreeObserver().addOnGlobalFocusChangeListener((was, now) -> {
                 if (now != null) beam.pointAt(now);
@@ -1159,7 +1166,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sky.update();
         wallpaperPlayer.start();
         if (sharinganOn) sharingan.start();
-        if (beamOn) beam.start();
+        if (beamOn) {
+            beam.start();
+            // Ready for the next boot, when the theme folder may not be readable yet.
+            BootGreeting.sync(this);
+        }
         if (fxOn) {
             // The theme folder can be missing right after boot, before storage is mounted, so try on each return.
             File themeDir = Config.dir(this);
@@ -1415,6 +1426,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (gameDay != null) gameDay.shutdown();
         unregisterReceiver(packageReceiver);
         wallpaperPlayer.close();
+        if (greeter != null) greeter.release();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         if (tim != null) tim.unregisterCallback(inputCallback);
@@ -2053,10 +2065,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Extra that replays the boot splash on demand: am start -n com.gathin.tvhome/.MainActivity --ez <this> true */
     static final String REPLAY_BOOT_INTRO = "com.gathin.tvhome.REPLAY_BOOT_INTRO";
 
-    /** repulsor_beam's arc reactor power-up, else sharingan's spin. */
+    /** repulsor_beam's arc reactor power-up with its spoken greeting, else sharingan's spin. */
     private void playBootIntro() {
         if (beamOn) {
             ((ArcReactorBootView) findViewById(R.id.bootReactor)).play();
+            greeter.play(greetingSpeech, greetingSpeechLang);
         } else if (sharinganOn) {
             View overlay = findViewById(R.id.bootOverlay);
             SharinganView bootEye = findViewById(R.id.bootSharingan);
